@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.allascode.org/evidency/1.0.0/evidence-snapshot.schema.json",
+  "title": "EvidenceSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_id", "status", "partition", "from_sequence", "to_sequence", "record_count", "created_at_unix_nano", "policy_version", "compression", "hash_algorithm", "content_hash", "last_record_hash", "projection_watermarks", "exporter_watermarks", "aggregates"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "snapshot_id": {"type": "string", "minLength": 16, "maxLength": 64},
+    "status": {"enum": ["candidate", "verified", "rejected"]},
+    "partition": {"type": "string", "minLength": 1, "maxLength": 128},
+    "from_sequence": {"type": "integer", "minimum": 1},
+    "to_sequence": {"type": "integer", "minimum": 1},
+    "record_count": {"type": "integer", "minimum": 0},
+    "created_at_unix_nano": {"type": "string", "pattern": "^[1-9][0-9]{0,19}$"},
+    "policy_version": {"type": "string", "minLength": 1, "maxLength": 64},
+    "compression": {"const": "zstd"},
+    "hash_algorithm": {"const": "blake3"},
+    "content_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "last_record_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "previous_snapshot_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "projection_watermarks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["log", "metric", "trace"],
+      "properties": {
+        "log": {"type": "integer", "minimum": 0},
+        "metric": {"type": "integer", "minimum": 0},
+        "trace": {"type": "integer", "minimum": 0}
+      }
+    },
+    "exporter_watermarks": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "aggregates": {
+      "type": "object",
+      "required": ["log_counts", "metric_rollups", "trace_root_hashes", "quarantine_manifest"],
+      "properties": {
+        "log_counts": {"type": "object"},
+        "metric_rollups": {"type": "object"},
+        "trace_root_hashes": {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+        "quarantine_manifest": {"type": "array", "items": {"type": "string", "maxLength": 128}}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["verifier", "verified_at_unix_nano", "verification_hash"],
+      "properties": {
+        "verifier": {"const": "EvidenceVerifierAgent"},
+        "verified_at_unix_nano": {"type": "string", "pattern": "^[1-9][0-9]{0,19}$"},
+        "verification_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "verified"}}}, "then": {"required": ["verification"]}}
+  ]
+}
