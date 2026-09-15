@@ -4,7 +4,7 @@
   "title": "CompiledBehaviorPlan",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "plan_id", "config_hash", "flow_hash", "registry_hash", "compiler_version", "canonical_label", "behavior_version", "input_schema_hash", "nodes", "edges", "injected_context", "event_contract", "observability"],
+  "required": ["schema_version", "plan_id", "config_hash", "flow_hash", "registry_hash", "compiler_version", "canonical_label", "behavior_version", "input_schema_hash", "nodes", "edges", "execution", "injected_context", "event_contract", "observability"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "plan_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -51,6 +51,19 @@
           "to": {"type": "integer", "minimum": 0},
           "binding": {"type": "string", "maxLength": 128}
         }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supervision", "max_parallel_actions", "plan_version_pinning", "on_action_error", "on_healing_exhausted", "ok_when"],
+      "properties": {
+        "supervision": {"const": "per_action"},
+        "max_parallel_actions": {"type": "integer", "minimum": 1, "maximum": 64},
+        "plan_version_pinning": {"const": true},
+        "on_action_error": {"const": "self_healing"},
+        "on_healing_exhausted": {"const": "human_in_the_healing_loop"},
+        "ok_when": {"const": "no_remaining_actions"}
       }
     },
     "injected_context": {
