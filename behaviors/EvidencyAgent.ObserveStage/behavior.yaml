@@ -1,0 +1,75 @@
+api_version: allascode.org/behavior/v1
+kind: Behavior
+
+metadata:
+  name: ObserveStage
+  version: 1.0.0
+
+identity:
+  agent_name: EvidencyAgent
+  intent_name: ObserveStage
+  canonical_label: EvidencyAgent.ObserveStage
+
+trigger:
+  kind: runtime_hook
+  name: stage.transition
+  automatic: true
+
+input:
+  schema_ref: ../../schemas/stage-observation.schema.json
+  preserve_original: true
+
+flow:
+  language: 2flow/v1
+  file_ref: ../../flows/EvidencyAgent.ObserveStage.2flow
+
+action_bindings:
+  AppendStageObservation:
+    action_id: evidency.append-stage-observation.v1
+    version: 1.0.0
+    skill_ref: ../../actions/AppendStageObservation/ACTION.md
+    capabilities:
+      - evidency.observation-ledger.read-last
+      - evidency.observation-ledger.append
+  ProjectStageLog:
+    action_id: evidency.project-stage-log.v1
+    version: 1.0.0
+    skill_ref: ../../actions/ProjectStageLog/ACTION.md
+    capabilities:
+      - evidency.observation-ledger.read
+      - evidency.log-projection.append
+  ProjectStageMetrics:
+    action_id: evidency.project-stage-metrics.v1
+    version: 1.0.0
+    skill_ref: ../../actions/ProjectStageMetrics/ACTION.md
+    capabilities:
+      - evidency.observation-ledger.read
+      - evidency.metric-projection.update
+  EvaluateSnapshotThreshold:
+    action_id: evidency.evaluate-snapshot-threshold.v1
+    version: 1.0.0
+    skill_ref: ../../actions/EvaluateSnapshotThreshold/ACTION.md
+    capabilities:
+      - evidency.policy.read
+      - evidency.store-counters.read
+      - evidency.snapshot-decision.append
+
+runtime:
+  supervision: per_action
+  max_parallel_actions: 2
+  plan_version_pinning: true
+  on_action_error: self_healing
+  on_healing_exhausted: human_in_the_healing_loop
+  ok_when: no_remaining_actions
+  upstream_agent_binding: injected_from_intent_2flow
+
+integrity:
+  config_hash: blake3
+  signature: ed25519
+  signature_required_in:
+    - production
+
+observability:
+  automatic: true
+  recursion_guard: non_reentrant_bootstrap_sink
+  max_observation_depth: 1

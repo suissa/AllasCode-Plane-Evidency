@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.allascode.org/behavior/1.0.0/compiled-behavior-plan.schema.json",
+  "title": "CompiledBehaviorPlan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plan_id", "config_hash", "flow_hash", "registry_hash", "compiler_version", "canonical_label", "behavior_version", "input_schema_hash", "nodes", "edges", "injected_context", "event_contract", "observability"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "plan_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "config_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "flow_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "registry_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "compiler_version": {"type": "string", "minLength": 1, "maxLength": 64},
+    "canonical_label": {"type": "string", "pattern": "^[^.]+\\.[^.]+$", "maxLength": 257},
+    "behavior_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+    "input_schema_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "call_name", "action_id", "action_version", "skill_hash", "input_schema_hash", "output_schema_hash", "effective_capabilities"],
+        "properties": {
+          "node_id": {"type": "integer", "minimum": 0},
+          "call_name": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9]{1,127}$"},
+          "action_id": {"type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+          "action_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+          "skill_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "input_schema_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "output_schema_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "effective_capabilities": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+          },
+          "parallel_group": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": {"type": "integer", "minimum": 0},
+          "to": {"type": "integer", "minimum": 0},
+          "binding": {"type": "string", "maxLength": 128}
+        }
+      }
+    },
+    "injected_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["upstream_agent", "trace_id", "event_id", "plan_id", "config_hash"],
+      "properties": {
+        "upstream_agent": {"const": "from_intent_2flow"},
+        "trace_id": {"const": "from_gateway_or_ui_agent"},
+        "event_id": {"const": "from_causal_event_when_present"},
+        "plan_id": {"const": "from_pinned_plan"},
+        "config_hash": {"const": "from_pinned_plan"}
+      }
+    },
+    "event_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ok", "error"],
+      "properties": {
+        "ok": {"const": "{Agent}.{Intent}.Ok after no remaining actions"},
+        "error": {"const": "{Agent}.{Intent}.Error after healing exhausted"}
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automatic", "recursion_guard", "max_observation_depth"],
+      "properties": {
+        "automatic": {"const": true},
+        "recursion_guard": {"enum": ["normal", "non_reentrant_bootstrap_sink"]},
+        "max_observation_depth": {"type": "integer", "minimum": 0, "maximum": 1}
+      }
+    }
+  }
+}

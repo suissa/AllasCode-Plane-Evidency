@@ -1,0 +1,9 @@
+-> stage_observation
+->> AppendStageObservation
+<<- appended_observation
+->> [ProjectStageLog, ProjectStageMetrics]
+<<- signal_projections
+->> EvaluateSnapshotThreshold
+<<- snapshot_decision
+<- observation_result
+
