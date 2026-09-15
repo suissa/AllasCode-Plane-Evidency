@@ -1,0 +1,107 @@
+api_version: allascode.org/evidency/v1
+kind: ObservabilityPolicy
+metadata:
+  name: edge-1vcpu-1gb
+  version: 1.0.0
+spec:
+  automatic_stage_observation:
+    enabled: true
+    lifecycle_transitions: [started, completed, failed]
+    required_signals: [log, metric, trace]
+
+  record_limits:
+    observation_bytes: 16384
+    log_body_bytes: 4096
+    error_stack_bytes: 8192
+    log_attribute_count: 32
+    metric_attribute_count: 12
+    attribute_key_bytes: 64
+    attribute_value_bytes: 256
+
+  metric_cardinality:
+    max_active_series_per_instrument: 2000
+    max_active_series_per_process: 10000
+    forbidden_dimensions:
+      - trace_id
+      - span_id
+      - event_id
+      - observation_id
+      - idempotency_key
+      - original_input_ref
+      - error.message
+      - user.id
+      - tenant.id
+
+  local_store:
+    max_bytes: 268435456
+    emergency_reserve_bytes: 16777216
+    soft_limit_percent: 70
+    hard_limit_percent: 85
+    emergency_limit_percent: 95
+    check_interval: 60s
+
+  snapshot:
+    minimum_new_records: 1
+    trigger_when_any:
+      completed_stage_count: 10000
+      elapsed_since_last_snapshot: 15m
+      uncompacted_bytes: 67108864
+      local_store_percent: 70
+    minimum_verified_snapshots: 2
+    compression: zstd
+    hash: blake3
+    include:
+      - sequence_watermarks
+      - projection_watermarks
+      - exporter_watermarks
+      - log_counts_by_severity_and_stage
+      - metric_aggregates
+      - trace_root_hashes
+      - quarantine_manifest
+      - previous_snapshot_hash
+
+  retention:
+    logs:
+      debug: 6h
+      info_success: 24h
+      warn_healing: 7d
+      error: 30d
+      fatal_security_audit: 90d
+    traces:
+      success: 24h
+      error_or_healed: 7d
+    metrics:
+      raw_points: 24h
+      rollup_1m: 7d
+      rollup_15m: 30d
+    snapshot_manifests:
+      duration: 90d
+      keep_at_least: 2
+    deletion_delay: 2h
+
+  storage_pressure:
+    at_soft_limit_percent: 70
+    at_hard_limit_percent: 85
+    at_emergency_limit_percent: 95
+    hard_limit_retention_floor:
+      debug: 0s
+      info_success: 15m
+      raw_metrics: 15m
+    rule: critical_classes_still_require_export_ack
+
+  compaction_guards:
+    require_verified_snapshot: true
+    require_sequence_at_or_below_snapshot_watermark: true
+    require_projection_watermarks: [log, metric, trace]
+    require_export_ack_for: [error, fatal, security, audit, healing]
+    preserve_quarantine: true
+    preserve_unfinished_spans: true
+    delete_marker_durable: true
+
+  emergency_degradation_order:
+    - compact_expired_acked_success_records
+    - replace_expired_raw_metrics_with_verified_rollups
+    - compact_debug_records_at_verified_watermark
+    - compact_info_success_records_at_verified_watermark
+    - use_emergency_reserve_for_error_healing_security_audit
+    - request_human_healing_if_critical_retention_cannot_be_guaranteed

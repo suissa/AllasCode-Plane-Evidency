@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.allascode.org/evidency/1.0.0/stage-observation.schema.json",
+  "title": "StageObservation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "observation_id", "trace_id", "span_id", "attempt", "sequence", "idempotency_key", "timestamp_unix_nano", "observed_timestamp_unix_nano", "transition", "stage", "allascode"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "observation_id": {"type": "string", "minLength": 16, "maxLength": 64},
+    "event_id": {"type": "string", "maxLength": 128},
+    "trace_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "span_id": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+    "parent_span_id": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+    "trace_flags": {"type": "integer", "minimum": 0, "maximum": 255},
+    "attempt": {"type": "integer", "minimum": 1},
+    "sequence": {"type": "integer", "minimum": 1},
+    "idempotency_key": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "timestamp_unix_nano": {"type": "string", "pattern": "^[1-9][0-9]{0,19}$"},
+    "observed_timestamp_unix_nano": {"type": "string", "pattern": "^[1-9][0-9]{0,19}$"},
+    "start_time_unix_nano": {"type": "string", "pattern": "^[1-9][0-9]{0,19}$"},
+    "duration_nano": {"type": "string", "pattern": "^[0-9]{1,20}$"},
+    "transition": {"enum": ["started", "completed", "failed"]},
+    "result": {"enum": ["ok", "error", "healed"]},
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 128},
+        "kind": {"enum": ["runtime_stage", "agent", "actor", "action", "healing_step", "proof_step"]}
+      }
+    },
+    "allascode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent_name", "intent_name", "behavior_canonical_label", "runtime_version"],
+      "properties": {
+        "agent_name": {"type": "string", "maxLength": 128},
+        "intent_name": {"type": "string", "maxLength": 128},
+        "behavior_canonical_label": {"type": "string", "pattern": "^[^.]+\\.[^.]+$", "maxLength": 257},
+        "actor_name": {"type": "string", "maxLength": 128},
+        "action_name": {"type": "string", "maxLength": 128},
+        "supervisor_name": {"type": "string", "maxLength": 128},
+        "runtime_version": {"type": "string", "maxLength": 64},
+        "tenant_scope": {"type": "string", "maxLength": 128}
+      }
+    },
+    "input_size_bytes": {"type": "integer", "minimum": 0},
+    "output_size_bytes": {"type": "integer", "minimum": 0},
+    "original_input_ref": {"type": "string", "maxLength": 256},
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "message"],
+      "properties": {
+        "type": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+        "message": {"type": "string", "maxLength": 4096},
+        "stack": {"type": "string", "maxLength": 8192}
+      }
+    },
+    "orphan_recovered": {"type": "boolean"},
+    "previous_record_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "record_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "allOf": [
+    {"if": {"properties": {"transition": {"const": "started"}}}, "then": {"not": {"anyOf": [{"required": ["result"]}, {"required": ["duration_nano"]}]}}},
+    {"if": {"properties": {"transition": {"enum": ["completed", "failed"]}}}, "then": {"required": ["result", "start_time_unix_nano", "duration_nano"]}},
+    {"if": {"properties": {"transition": {"const": "failed"}}}, "then": {"required": ["error"]}}
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.allascode.org/behavior/1.0.0/behavior-config.schema.json",
+  "title": "AllasCode Behavior Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "kind", "metadata", "identity", "trigger", "input", "flow", "action_bindings", "runtime", "integrity", "observability"],
+  "properties": {
+    "api_version": {"const": "allascode.org/behavior/v1"},
+    "kind": {"const": "Behavior"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9]{1,127}$"},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+        "description": {"type": "string", "maxLength": 512}
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent_name", "intent_name", "canonical_label"],
+      "properties": {
+        "agent_name": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9]{1,127}$"},
+        "intent_name": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9]{1,127}$"},
+        "canonical_label": {"type": "string", "pattern": "^[^.]+\\.[^.]+$", "maxLength": 257}
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "automatic"],
+      "properties": {
+        "kind": {"enum": ["runtime_hook", "intent", "event"]},
+        "name": {"type": "string", "minLength": 1, "maxLength": 256},
+        "automatic": {"type": "boolean"}
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_ref", "preserve_original"],
+      "properties": {
+        "schema_ref": {"type": "string", "pattern": "^(\\.\\.?/|schema://)[A-Za-z0-9._/@-]+$"},
+        "preserve_original": {"const": true}
+      }
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language"],
+      "properties": {
+        "language": {"const": "2flow/v1"},
+        "file_ref": {"type": "string", "pattern": "^\\.\\.?/[A-Za-z0-9._/-]+\\.2flow$"},
+        "inline": {"type": "string", "minLength": 1, "maxLength": 65536}
+      },
+      "oneOf": [
+        {"required": ["file_ref"], "not": {"required": ["inline"]}},
+        {"required": ["inline"], "not": {"required": ["file_ref"]}}
+      ]
+    },
+    "action_bindings": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 128,
+      "propertyNames": {"pattern": "^[A-Z][A-Za-z0-9]{1,127}$"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["action_id", "version", "skill_ref", "capabilities"],
+        "properties": {
+          "action_id": {"type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"},
+          "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"},
+          "skill_ref": {"type": "string", "pattern": "^\\.\\.?/[A-Za-z0-9._/-]+\\.md$"},
+          "capabilities": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"}
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supervision", "max_parallel_actions", "plan_version_pinning", "on_action_error", "on_healing_exhausted", "ok_when", "upstream_agent_binding"],
+      "properties": {
+        "supervision": {"const": "per_action"},
+        "max_parallel_actions": {"type": "integer", "minimum": 1, "maximum": 64},
+        "plan_version_pinning": {"const": true},
+        "on_action_error": {"const": "self_healing"},
+        "on_healing_exhausted": {"const": "human_in_the_healing_loop"},
+        "ok_when": {"const": "no_remaining_actions"},
+        "upstream_agent_binding": {"const": "injected_from_intent_2flow"}
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["config_hash", "signature", "signature_required_in"],
+      "properties": {
+        "config_hash": {"const": "blake3"},
+        "signature": {"const": "ed25519"},
+        "signature_required_in": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["test", "staging", "production"]}
+        }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automatic", "recursion_guard", "max_observation_depth"],
+      "properties": {
+        "automatic": {"const": true},
+        "recursion_guard": {"enum": ["normal", "non_reentrant_bootstrap_sink"]},
+        "max_observation_depth": {"type": "integer", "minimum": 0, "maximum": 1}
+      }
+    }
+  }
+}
+
